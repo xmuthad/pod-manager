@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -37,6 +38,28 @@ func DefaultConfig() *Config {
 		log.Printf("环境变量POD_NAMESPACE未设置，使用默认命名空间: %s", namespace)
 	}
 
+	// 从环境变量获取CPU超售比例
+	cpuRatio := 1.5
+	if ratio := os.Getenv("CPU_OVERCOMMIT_RATIO"); ratio != "" {
+		if val, err := strconv.ParseFloat(ratio, 64); err == nil {
+			cpuRatio = val
+			log.Printf("从环境变量获取CPU超售比例: %f", cpuRatio)
+		} else {
+			log.Printf("解析CPU_OVERCOMMIT_RATIO环境变量失败: %v，使用默认值: %f", err, cpuRatio)
+		}
+	}
+
+	// 从环境变量获取内存超售比例
+	memRatio := 1.5
+	if ratio := os.Getenv("MEMORY_OVERCOMMIT_RATIO"); ratio != "" {
+		if val, err := strconv.ParseFloat(ratio, 64); err == nil {
+			memRatio = val
+			log.Printf("从环境变量获取内存超售比例: %f", memRatio)
+		} else {
+			log.Printf("解析MEMORY_OVERCOMMIT_RATIO环境变量失败: %v，使用默认值: %f", err, memRatio)
+		}
+	}
+
 	// 从环境变量获取目标命名空间列表
 	targetNamespaces := []string{}
 	if namespaces := os.Getenv("TARGET_NAMESPACES"); namespaces != "" {
@@ -44,8 +67,8 @@ func DefaultConfig() *Config {
 	}
 
 	return &Config{
-		CPUOvercommitRatio:    1.5,
-		MemoryOvercommitRatio: 1.5,
+		CPUOvercommitRatio:    cpuRatio,
+		MemoryOvercommitRatio: memRatio,
 		Port:                  "8443",
 		CertDir:               "/etc/webhook/certs",
 		ServiceName:           "pod-manager",
